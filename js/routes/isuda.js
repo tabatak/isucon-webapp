@@ -294,7 +294,7 @@ const htmlify = async (ctx, content) => {
   }
 
   const db = await dbh(ctx);
-  const keywords = await db.query('SELECT * FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
+  const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   const key2sha = new Map();
   const re = new RegExp(keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'), 'g');
   let result = content.replace(re, (keyword) => {
