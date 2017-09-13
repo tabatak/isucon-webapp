@@ -10,3 +10,16 @@ isucon@ubuntu-xenial:~/isucon6q$ ./isucon6q-bench -target http://127.0.0.1
 ```
 
 scoreが0ではなくなった。
+
+
+## 20170913
+isutarをisudaに移動してみた結果。
+やっと10000点超えた。全然スピードあがらない。
+```
+isucon@ubuntu-xenial:~/isucon6q$ ./isucon6q-bench -target http://127.0.0.1
+2017/09/13 16:09:45 start pre-checking
+2017/09/13 16:09:47 pre-check finished and start main benchmarking
+2017/09/13 16:10:45 benchmarking finished
+{"pass":true,"score":10438,"success":4129,"fail":0,"messages":[]}
+```
+
