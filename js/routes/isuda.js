@@ -103,6 +103,10 @@ router.use(async (ctx, next) => {
     await ctx.dbh.end();
     ctx.dbh = null;
   }
+  if (ctx.dbhs) {
+    await ctx.dbhs.end();
+    ctx.dbhs = null;
+  }
 });
 
 router.get('initialize', async (ctx, next) => {
