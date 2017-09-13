@@ -113,8 +113,9 @@ router.get('initialize', async (ctx, next) => {
   const db = await dbh(ctx);
   const dbs = await dbhs(ctx);
   await db.query('DELETE FROM entry WHERE id > 7101');
+  await dbs.query('TRUNCATE star');
   const origin = config('isutarOrigin');
-  const res = await axios.get(`${origin}/initialize`);
+  // const res = await axios.get(`${origin}/initialize`);
   ctx.body = {
     result: 'ok',
   };
@@ -362,5 +363,29 @@ const isSpamContents = async (content) => {
   const res = await axios.post(config('isupamOrigin'), `content=${encodeURIComponent(content)}`);
   return !res.data.valid;
 };
+
+router.post('stars', async (ctx, next) => {
+  const dbs = await dbhs(ctx);
+  const keyword = ctx.query.keyword || ctx.request.body.keyword;
+
+  // const origin = process.env.ISUDA_ORIGIN || 'http://localhost:5000';
+  // const url = `${origin}/keyword/${RFC3986URIComponent(keyword)}`;
+
+  // try {
+  //   const res = await axios.get(url);
+  // } catch (err) {
+  //   console.log(err);
+  //   ctx.status = 404;
+  //   return;
+  // }
+
+  await dbs.query('INSERT INTO star (keyword, user_name, created_at) VALUES (?, ?, NOW())', [
+    keyword, ctx.query.user || ctx.request.body.user
+  ]);
+
+  ctx.body = {
+    result: 'ok',
+  };
+});
 
 module.exports = router;
