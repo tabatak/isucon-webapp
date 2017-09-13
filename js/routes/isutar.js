@@ -35,50 +35,46 @@ router.use(async (ctx, next) => {
     await ctx.dbh.end();
     ctx.dbh = null;
   }
-  if (ctx.dbhs) {
-    await ctx.dbhs.end();
-    ctx.dbhs = null;
-  }
 });
 
-router.get('initialize', async (ctx, next) => {
-  const db = await dbh(ctx);
-  await db.query('TRUNCATE star');
-  ctx.body = {
-    result: 'ok',
-  };
-});
+// router.get('initialize', async (ctx, next) => {
+//   const db = await dbh(ctx);
+//   await db.query('TRUNCATE star');
+//   ctx.body = {
+//     result: 'ok',
+//   };
+// });
 
-router.get('stars', async (ctx, next) => {
-  const db = await dbh(ctx);
-  const stars =  await db.query('SELECT * FROM star WHERE keyword = ?', [ctx.query.keyword]);
-  ctx.body = {
-    stars: stars,
-  };
-});
+// router.get('stars', async (ctx, next) => {
+//   const db = await dbh(ctx);
+//   const stars =  await db.query('SELECT * FROM star WHERE keyword = ?', [ctx.query.keyword]);
+//   ctx.body = {
+//     stars: stars,
+//   };
+// });
 
-router.post('stars', async (ctx, next) => {
-  const db = await dbh(ctx);
-  const keyword = ctx.query.keyword || ctx.request.body.keyword;
+// router.post('stars', async (ctx, next) => {
+//   const db = await dbh(ctx);
+//   const keyword = ctx.query.keyword || ctx.request.body.keyword;
 
-  const origin = process.env.ISUDA_ORIGIN || 'http://localhost:5000';
-  const url = `${origin}/keyword/${RFC3986URIComponent(keyword)}`;
+//   const origin = process.env.ISUDA_ORIGIN || 'http://localhost:5000';
+//   const url = `${origin}/keyword/${RFC3986URIComponent(keyword)}`;
 
-  try {
-    const res = await axios.get(url);
-  } catch (err) {
-    console.log(err);
-    ctx.status = 404;
-    return;
-  }
+//   try {
+//     const res = await axios.get(url);
+//   } catch (err) {
+//     console.log(err);
+//     ctx.status = 404;
+//     return;
+//   }
 
-  await db.query('INSERT INTO star (keyword, user_name, created_at) VALUES (?, ?, NOW())', [
-    keyword, ctx.query.user || ctx.request.body.user
-  ]);
+//   await db.query('INSERT INTO star (keyword, user_name, created_at) VALUES (?, ?, NOW())', [
+//     keyword, ctx.query.user || ctx.request.body.user
+//   ]);
 
-  ctx.body = {
-    result: 'ok',
-  };
-});
+//   ctx.body = {
+//     result: 'ok',
+//   };
+// });
 
 module.exports = router;
