@@ -367,6 +367,12 @@ const isSpamContents = async (content) => {
 router.post('stars', async (ctx, next) => {
   const dbs = await dbhs(ctx);
   const keyword = ctx.query.keyword || ctx.request.body.keyword;
+  const db = await dbh(ctx);
+  const entries = await db.query('SELECT * FROM entry WHERE keyword = ?', [keyword]);
+  if (entries.length === 0) {
+    ctx.status = 404;
+    return;
+  }
 
   // const origin = process.env.ISUDA_ORIGIN || 'http://localhost:5000';
   // const url = `${origin}/keyword/${RFC3986URIComponent(keyword)}`;
