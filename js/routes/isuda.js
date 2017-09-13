@@ -52,6 +52,27 @@ const dbh = async (ctx) => {
   return ctx.dbh;
 };
 
+const dbhs = async (ctx) => {
+  if (ctx.dbhs) {
+    return ctx.dbhs;
+  }
+
+  ctx.dbhs = mysql.createPool({
+    host: process.env.ISUTAR_DB_HOST || 'localhost',
+    port: process.env.ISUTAR_DB_PORT || 3306,
+    user: process.env.ISUTAR_DB_USER || 'root',
+    password: process.env.ISUTAR_DB_PASSWORD || '',
+    database: 'isutar',
+    connectionLimit: 1,
+    charset: 'utf8mb4'
+  });
+  await ctx.dbhs.query("SET SESSION sql_mode='TRADITIONAL,NO_AUTO_VALUE_ON_ZERO,ONLY_FULL_GROUP_BY'");
+  await ctx.dbhs.query("SET NAMES utf8mb4");
+
+  return ctx.dbhs;
+};
+
+
 const setName = async (ctx) => {
   ctx.state = {};
   const db = await dbh(ctx);
@@ -322,10 +343,14 @@ const escapeHtml = (string) => {
 };
 
 const loadStars = async (ctx, keyword) => {
-  const origin = config('isutarOrigin');
-  const url = `${origin}/stars`;
-  const res = await axios.get(url, {params: {keyword: keyword}});
-  return res.data.stars;
+
+  const dbs = await dbhs(ctx);
+  const stars =  await dbs.query('SELECT * FROM star WHERE keyword = ?', [keyword]);
+  return starts;
+  // const origin = config('isutarOrigin');
+  // const url = `${origin}/stars`;
+  // const res = await axios.get(url, {params: {keyword: keyword}});
+  // return res.data.stars;
 };
 
 const isSpamContents = async (content) => {
