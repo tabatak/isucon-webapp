@@ -351,7 +351,7 @@ const loadStars = async (ctx, keyword) => {
 
   const dbs = await dbhs(ctx);
   const stars =  await dbs.query('SELECT * FROM star WHERE keyword = ?', [keyword]);
-  return starts;
+  return stars;
   // const origin = config('isutarOrigin');
   // const url = `${origin}/stars`;
   // const res = await axios.get(url, {params: {keyword: keyword}});
