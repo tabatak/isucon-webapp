@@ -280,11 +280,11 @@ router.get('keyword/:keyword', async (ctx, next) => {
   }
   const db = await dbh(ctx);
   const entries = await db.query('SELECT * FROM entry WHERE keyword = ?', [keyword]);
-  const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   if (entries.length === 0) {
     ctx.status = 404;
     return;
   }
+  const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   ctx.state.entry = entries[0];
   ctx.state.entry.html = await htmlify(ctx, entries[0].description, keywords);
   // ctx.state.entry.html = entries[0].htmlified;
