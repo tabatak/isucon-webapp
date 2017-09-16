@@ -327,14 +327,14 @@ const resetHtmlified = async (ctx, keyword) => {
   const db = await dbh(ctx);
   let entries;
   if(keyword.length != 0){
-    entries = await db.query('SELECT * FROM entry WHERE description LIKE %?%', [keyword]);
+    entries = await db.query('SELECT keyword, description FROM entry WHERE description LIKE %?%', [keyword]);
   }else{
-    entries = await db.query('SELECT * FROM entry');
+    entries = await db.query('SELECT keyword, description FROM entry');
   }
   const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   for (let entry of entries) {
     const re = new RegExp(keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'), 'g');
-    let result = content.replace(re, (keyword) => {
+    let result = entry.description.replace(re, (keyword) => {
       const sha1 = crypto.createHash('sha1');
       sha1.update(keyword);
       let sha1hex = `isuda_${sha1.digest('hex')}`;
@@ -347,7 +347,7 @@ const resetHtmlified = async (ctx, keyword) => {
       result = result.replace(new RegExp(escapeRegExp(key2sha.get(kw)), 'g'), link);
     }
     result = result.replace(/\n/g, "<br />\n");
-    await db.query('UPDATE entry SET htmlified = ?', [result])
+    await db.query('UPDATE entry SET htmlified = ? WHERE keyword = ?', [result, entry.keyword])
   }
 }
 
