@@ -115,10 +115,9 @@ router.get('initialize', async (ctx, next) => {
   await db.query('DELETE FROM entry WHERE id > 7101');
   await dbs.query('TRUNCATE star');
 
-  await resetHtmlified(ctx, '');
+  // await resetHtmlified(ctx, '');
 
   const origin = config('isutarOrigin');
-  // const res = await axios.get(`${origin}/initialize`);
   ctx.body = {
     result: 'ok',
   };
@@ -133,9 +132,10 @@ router.get('', async (ctx, next) => {
 
   const db = await dbh(ctx);
   const entries = await db.query('SELECT * FROM entry ORDER BY updated_at DESC LIMIT ? OFFSET ?', [perPage, perPage * (page - 1)])
+  const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   for (let entry of entries) {
-    // entry.html = await htmlify(ctx, entry.description);
-    entry.html = entry.htmlified;
+    entry.html = await htmlify(ctx, entry.description, keywords);
+    // entry.html = entry.htmlified;
     entry.stars = await loadStars(ctx, entry.keyword);
   }
 
@@ -189,7 +189,7 @@ router.post('keyword', async (ctx, next) => {
     [
       userId, keyword, description, userId, keyword, description
     ]);
-  await resetHtmlified(ctx, keyword);
+  // await resetHtmlified(ctx, keyword);
 
   await ctx.redirect('/');
 
@@ -280,13 +280,14 @@ router.get('keyword/:keyword', async (ctx, next) => {
   }
   const db = await dbh(ctx);
   const entries = await db.query('SELECT * FROM entry WHERE keyword = ?', [keyword]);
+  const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   if (entries.length === 0) {
     ctx.status = 404;
     return;
   }
   ctx.state.entry = entries[0];
-  // ctx.state.entry.html = await htmlify(ctx, entries[0].description);
-  ctx.state.entry.html = entries[0].htmlified;
+  ctx.state.entry.html = await htmlify(ctx, entries[0].description, keywords);
+  // ctx.state.entry.html = entries[0].htmlified;
   ctx.state.entry.stars = await loadStars(ctx, keyword);
   await ctx.render('keyword');
 });
@@ -317,7 +318,7 @@ router.post('keyword/:keyword', async (ctx, next) => {
   }
 
   await db.query('DELETE FROM entry WHERE keyword = ?', [keyword]);
-  await resetHtmlified(ctx, keyword);
+  // await resetHtmlified(ctx, keyword);
   
 
   await ctx.redirect('/');
@@ -352,13 +353,13 @@ const resetHtmlified = async (ctx, target) => {
   }
 }
 
-const htmlify = async (ctx, content) => {
+const htmlify = async (ctx, content, keywords) => {
   if (content == null) {
     return '';
   }
 
   const db = await dbh(ctx);
-  const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
+  // const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   const key2sha = new Map();
   const re = new RegExp(keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'), 'g');
   let result = content.replace(re, (keyword) => {
@@ -386,14 +387,9 @@ const escapeHtml = (string) => {
 };
 
 const loadStars = async (ctx, keyword) => {
-
   const dbs = await dbhs(ctx);
   const stars =  await dbs.query('SELECT * FROM star WHERE keyword = ?', [keyword]);
   return stars;
-  // const origin = config('isutarOrigin');
-  // const url = `${origin}/stars`;
-  // const res = await axios.get(url, {params: {keyword: keyword}});
-  // return res.data.stars;
 };
 
 const isSpamContents = async (content) => {
@@ -410,18 +406,6 @@ router.post('stars', async (ctx, next) => {
     ctx.status = 404;
     return;
   }
-
-  // const origin = process.env.ISUDA_ORIGIN || 'http://localhost:5000';
-  // const url = `${origin}/keyword/${RFC3986URIComponent(keyword)}`;
-
-  // try {
-  //   const res = await axios.get(url);
-  // } catch (err) {
-  //   console.log(err);
-  //   ctx.status = 404;
-  //   return;
-  // }
-
   await dbs.query('INSERT INTO star (keyword, user_name, created_at) VALUES (?, ?, NOW())', [
     keyword, ctx.query.user || ctx.request.body.user
   ]);
