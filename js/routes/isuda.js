@@ -323,11 +323,12 @@ router.post('keyword/:keyword', async (ctx, next) => {
   await ctx.redirect('/');
 });
 
-const resetHtmlified = async (ctx, keyword) => {
+const resetHtmlified = async (ctx, target) => {
+  console.log('target keyword = ' + target)
   const db = await dbh(ctx);
   let entries;
-  if(keyword.length != 0){
-    entries = await db.query('SELECT keyword, description FROM entry WHERE description LIKE %?%', [keyword]);
+  if(target.length != 0){
+    entries = await db.query('SELECT keyword, description FROM entry WHERE description LIKE %?%', [target]);
   }else{
     entries = await db.query('SELECT keyword, description FROM entry');
   }
