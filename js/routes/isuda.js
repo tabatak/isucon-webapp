@@ -183,10 +183,10 @@ router.post('keyword', async (ctx, next) => {
 
   const db = await dbh(ctx);
   await db.query(
-    'INSERT INTO entry (author_id, keyword, description, created_at, updated_at) ' +
+    'INSERT INTO entry (author_id, keyword, description, created_at, updated_at, keyword_length) ' +
     'VALUES (?, ?, ?, NOW(), NOW()) ' +
     'ON DUPLICATE KEY UPDATE ' +
-    'author_id = ?, keyword = ?, description = ?, updated_at = NOW()',
+    'author_id = ?, keyword = ?, description = ?, updated_at = NOW(), CHARACTER_LENGTH(keyword)',
     [
       userId, keyword, description, userId, keyword, description
     ]);
