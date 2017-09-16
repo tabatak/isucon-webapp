@@ -114,6 +114,9 @@ router.get('initialize', async (ctx, next) => {
   const dbs = await dbhs(ctx);
   await db.query('DELETE FROM entry WHERE id > 7101');
   await dbs.query('TRUNCATE star');
+
+  await resetHtmlified(ctx, '');
+
   const origin = config('isutarOrigin');
   // const res = await axios.get(`${origin}/initialize`);
   ctx.body = {
@@ -131,7 +134,8 @@ router.get('', async (ctx, next) => {
   const db = await dbh(ctx);
   const entries = await db.query('SELECT * FROM entry ORDER BY updated_at DESC LIMIT ? OFFSET ?', [perPage, perPage * (page - 1)])
   for (let entry of entries) {
-    entry.html = await htmlify(ctx, entry.description);
+    // entry.html = await htmlify(ctx, entry.description);
+    entry.html = entry.htmlified;
     entry.stars = await loadStars(ctx, entry.keyword);
   }
 
@@ -185,6 +189,7 @@ router.post('keyword', async (ctx, next) => {
     [
       userId, keyword, description, userId, keyword, description
     ]);
+  await resetHtmlified(ctx, keyword);
 
   await ctx.redirect('/');
 
@@ -280,7 +285,8 @@ router.get('keyword/:keyword', async (ctx, next) => {
     return;
   }
   ctx.state.entry = entries[0];
-  ctx.state.entry.html = await htmlify(ctx, entries[0].description);
+  // ctx.state.entry.html = await htmlify(ctx, entries[0].description);
+  ctx.state.entry.html = entries[0].htmlified;
   ctx.state.entry.stars = await loadStars(ctx, keyword);
   await ctx.render('keyword');
 });
@@ -311,9 +317,40 @@ router.post('keyword/:keyword', async (ctx, next) => {
   }
 
   await db.query('DELETE FROM entry WHERE keyword = ?', [keyword]);
+  await resetHtmlified(ctx, keyword);
+  
 
   await ctx.redirect('/');
 });
+
+const resetHtmlified = async (ctx, keyword) => {
+  const db = await dbh(ctx);
+  let entries;
+  if(keyword.length != 0){
+    entries = await db.query('SELECT * FROM entry WHERE description LIKE %?%', [keyword]);
+  }else{
+    entries = await db.query('SELECT * FROM entry');
+  }
+  const entries = await db.query('SELECT * FROM entry')
+  const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
+  for (let entry of entries) {
+    const re = new RegExp(keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'), 'g');
+    let result = content.replace(re, (keyword) => {
+      const sha1 = crypto.createHash('sha1');
+      sha1.update(keyword);
+      let sha1hex = `isuda_${sha1.digest('hex')}`;
+      key2sha.set(keyword, sha1hex);
+      return sha1hex;
+    });
+    for (let kw of key2sha.keys()) {
+      const url = `/keyword/${RFC3986URIComponent(kw)}`;
+      const link = `<a href=${url}>${ejs.escapeXML(kw)}</a>`;
+      result = result.replace(new RegExp(escapeRegExp(key2sha.get(kw)), 'g'), link);
+    }
+    result = result.replace(/\n/g, "<br />\n");
+    await db.query('UPDATE entry SET htmlified = ?', [result])
+  }
+}
 
 const htmlify = async (ctx, content) => {
   if (content == null) {
