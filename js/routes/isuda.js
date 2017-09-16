@@ -331,7 +331,6 @@ const resetHtmlified = async (ctx, keyword) => {
   }else{
     entries = await db.query('SELECT * FROM entry');
   }
-  const entries = await db.query('SELECT * FROM entry')
   const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   for (let entry of entries) {
     const re = new RegExp(keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'), 'g');
