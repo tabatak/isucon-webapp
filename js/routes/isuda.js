@@ -4,7 +4,7 @@ const mysql = require('promise-mysql');
 const crypto = require('crypto');
 const axios = require('axios');
 const ejs = require('ejs');
-const bluebird = require('bluebirds');
+const bluebird = require('bluebird');
 const redis = require('redis');
 bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
