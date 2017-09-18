@@ -4,6 +4,12 @@ const mysql = require('promise-mysql');
 const crypto = require('crypto');
 const axios = require('axios');
 const ejs = require('ejs');
+const redis = require('bluebirds');
+const redis = require('redis');
+bluebird.promisifyAll(redis.RedisClient.prototype);
+bluebird.promisifyAll(redis.Multi.prototype);
+const redisClient = redis.createClient();
+
 
 let _config;
 const config = (key) => {
@@ -115,7 +121,7 @@ router.get('initialize', async (ctx, next) => {
   await db.query('DELETE FROM entry WHERE id > 7101');
   await dbs.query('TRUNCATE star');
 
-  // await resetHtmlified(ctx, '');
+  await setCachedKeywords(db);
 
   const origin = config('isutarOrigin');
   ctx.body = {
@@ -132,11 +138,9 @@ router.get('', async (ctx, next) => {
 
   const db = await dbh(ctx);
   const entries = await db.query('SELECT * FROM entry ORDER BY updated_at DESC LIMIT ? OFFSET ?', [perPage, perPage * (page - 1)])
-  // const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   const keywords = await db.query('SELECT keyword FROM entry ORDER BY keyword_length DESC');
   for (let entry of entries) {
     entry.html = await htmlify(ctx, entry.description, keywords);
-    // entry.html = entry.htmlified;
     entry.stars = await loadStars(ctx, entry.keyword);
   }
 
@@ -190,10 +194,9 @@ router.post('keyword', async (ctx, next) => {
     [
       userId, keyword, description, userId, keyword, description
     ]);
-  // await resetHtmlified(ctx, keyword);
 
+  await setCachedKeywords(db);
   await ctx.redirect('/');
-
 });
 
 router.get('register', async (ctx, next) => {
@@ -288,7 +291,6 @@ router.get('keyword/:keyword', async (ctx, next) => {
   const keywords = await db.query('SELECT keyword FROM entry ORDER BY keyword_length DESC');
   ctx.state.entry = entries[0];
   ctx.state.entry.html = await htmlify(ctx, entries[0].description, keywords);
-  // ctx.state.entry.html = entries[0].htmlified;
   ctx.state.entry.stars = await loadStars(ctx, keyword);
   await ctx.render('keyword');
 });
@@ -317,42 +319,10 @@ router.post('keyword/:keyword', async (ctx, next) => {
     ctx.status = 404;
     return;
   }
-
   await db.query('DELETE FROM entry WHERE keyword = ?', [keyword]);
-  // await resetHtmlified(ctx, keyword);
-  
-
+  await setCachedKeywords(db);
   await ctx.redirect('/');
 });
-
-const resetHtmlified = async (ctx, target) => {
-  console.log('target keyword = ' + target)
-  const db = await dbh(ctx);
-  let entries;
-  if(target.length != 0){
-    entries = await db.query('SELECT keyword, description FROM entry WHERE description LIKE %?%', [target]);
-  }else{
-    entries = await db.query('SELECT keyword, description FROM entry');
-  }
-  const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
-  for (let entry of entries) {
-    const re = new RegExp(keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'), 'g');
-    let result = entry.description.replace(re, (keyword) => {
-      const sha1 = crypto.createHash('sha1');
-      sha1.update(keyword);
-      let sha1hex = `isuda_${sha1.digest('hex')}`;
-      key2sha.set(keyword, sha1hex);
-      return sha1hex;
-    });
-    for (let kw of key2sha.keys()) {
-      const url = `/keyword/${RFC3986URIComponent(kw)}`;
-      const link = `<a href=${url}>${ejs.escapeXML(kw)}</a>`;
-      result = result.replace(new RegExp(escapeRegExp(key2sha.get(kw)), 'g'), link);
-    }
-    result = result.replace(/\n/g, "<br />\n");
-    await db.query('UPDATE entry SET htmlified = ? WHERE keyword = ?', [result, entry.keyword])
-  }
-}
 
 const htmlify = async (ctx, content, keywords) => {
   if (content == null) {
@@ -360,9 +330,10 @@ const htmlify = async (ctx, content, keywords) => {
   }
 
   const db = await dbh(ctx);
-  // const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   const key2sha = new Map();
-  const re = new RegExp(keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'), 'g');
+  // const re = new RegExp(keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'), 'g');
+  const cachedKeywords = await getCachedKeywords();
+  const re = new RegExp(cachedKeywords, 'g');
   let result = content.replace(re, (keyword) => {
     const sha1 = crypto.createHash('sha1');
     sha1.update(keyword);
@@ -415,5 +386,14 @@ router.post('stars', async (ctx, next) => {
     result: 'ok',
   };
 });
+
+const setCachedKeywords = async (db) => {
+  const keywords = await db.query('SELECT keyword FROM entry ORDER BY keyword_length DESC');
+  redisClient.set("keywords", keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'));
+}
+const getCachedKeywords = async () => {
+  return redisClient.get("keywords");
+}
+
 
 module.exports = router;
