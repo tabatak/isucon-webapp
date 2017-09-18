@@ -123,12 +123,6 @@ router.get('initialize', async (ctx, next) => {
 
   await setCachedKeywords(db);
 
-  // cacheにhtmlifiedをつめこめるのか
-  const entries = await db.query('SELECT id, description FROM entry ORDER BY id');
-  for (let entry of entries) {
-    await setCachedHtmlified(ctx, entry);
-  }
-
   const origin = config('isutarOrigin');
   ctx.body = {
     result: 'ok',
