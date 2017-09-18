@@ -389,10 +389,10 @@ router.post('stars', async (ctx, next) => {
 
 const setCachedKeywords = async (db) => {
   const keywords = await db.query('SELECT keyword FROM entry ORDER BY keyword_length DESC');
-  redisClient.set("keywords", keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'));
+  redisClient.setAsync("keywords", keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'));
 }
 const getCachedKeywords = async () => {
-  return redisClient.get("keywords");
+  return redisClient.getAsync("keywords");
 }
 
 
