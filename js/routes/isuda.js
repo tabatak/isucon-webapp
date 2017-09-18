@@ -394,26 +394,26 @@ router.post('stars', async (ctx, next) => {
 
 const setCachedKeywords = async (db) => {
   const keywords = await db.query('SELECT keyword FROM entry ORDER BY keyword_length DESC');
-  redisClient.setAsync("keywords", keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'));
+  await redisClient.setAsync("keywords", keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'));
 }
 
 const getCachedKeywords = async () => {
-  return redisClient.getAsync("keywords");
+  return await redisClient.getAsync("keywords");
 }
 
 const setCachedHtmlified = async (ctx, entry) => {
   const htmlified = await htmlify(ctx, entry.description);
-  redisClient.setAsync(`htmlified-${entry.id}`, htmlified);
+  await redisClient.setAsync(`htmlified-${entry.id}`, htmlified);
 }
 
 const getCachedHtmlified = async (ctx, entry) => {
-  let htmlified = redisClient.getAsync(`htmlified-${entry.id}`);
+  let htmlified = await redisClient.getAsync(`htmlified-${entry.id}`);
   if (htmlified){
     return htmlified;
   }
   //getでsetしてる
   htmlified = await htmlify(ctx, entry.description);
-  redisClient.setAsync(`htmlified-${entry.id}`, htmlified);
+  await redisClient.setAsync(`htmlified-${entry.id}`, htmlified);
   return htmlified;
 }
 
@@ -422,7 +422,7 @@ const resetCachedHtmlified = async (ctx, keyword) => {
   const entries = await db.query("SELECT id, description FROM entry where description LIKE '%?%'", [keyword])
   for (let entry of entries) {
     const htmlified = await htmlify(ctx, entry.description);
-    redisClient.setAsync(`htmlified-${entry.id}`, htmlified);
+    await redisClient.setAsync(`htmlified-${entry.id}`, htmlified);
   }
 }
 
