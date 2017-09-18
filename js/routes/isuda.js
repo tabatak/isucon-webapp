@@ -408,7 +408,7 @@ const setCachedHtmlified = async (ctx, entry) => {
 
 const getCachedHtmlified = async (ctx, entry) => {
   let htmlified = redisClient.getAsync(`htmlified-${entry.id}`);
-  if (htmlified.length !== 0 ){
+  if (htmlified != null && htmlified.length !== 0 ){
     return htmlified;
   }
   //getでsetしてる
