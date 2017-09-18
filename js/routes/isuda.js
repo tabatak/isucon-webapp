@@ -124,7 +124,7 @@ router.get('initialize', async (ctx, next) => {
   await setCachedKeywords(db);
 
   // cacheにhtmlifiedをつめこめるのか
-  const entries = await db.query('SELECT * FROM entry ORDER BY id');
+  const entries = await db.query('SELECT id, description FROM entry ORDER BY id');
   for (let entry of entries) {
     await setCachedHtmlified(ctx, entry);
   }
@@ -402,7 +402,7 @@ const getCachedKeywords = async () => {
 }
 
 const setCachedHtmlified = async (ctx, entry) => {
-  const htmlified = await htmlified(ctx, entry.description);
+  const htmlified = await htmlify(ctx, entry.description);
   redisClient.setAsync(`htmlified-${entry.id}`, htmlified);
 }
 
@@ -412,16 +412,16 @@ const getCachedHtmlified = async (ctx, entry) => {
     return htmlified;
   }
   //getでsetしてる
-  htmlified = await htmlified(ctx, entry.description);
+  htmlified = await htmlify(ctx, entry.description);
   redisClient.setAsync(`htmlified-${entry.id}`, htmlified);
   return htmlified;
 }
 
 const resetCachedHtmlified = async (ctx, keyword) => {
   const db = await dbh(ctx);
-  const entries = await db.query("SELECT * FROM entry where description LIKE '%?%'", [keyword])
+  const entries = await db.query("SELECT id, description FROM entry where description LIKE '%?%'", [keyword])
   for (let entry of entries) {
-    const htmlified = await htmlified(ctx, entry.description);
+    const htmlified = await htmlify(ctx, entry.description);
     redisClient.setAsync(`htmlified-${entry.id}`, htmlified);
   }
 }
