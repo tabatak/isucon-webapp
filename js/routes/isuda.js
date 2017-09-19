@@ -447,7 +447,7 @@ const setHtmlified = async (ctx, entry) => {
 
 const resetHtmlified = async (ctx, keyword) => {
   const db = await dbh(ctx);
-  const entries = await db.query("UPDATE entry SET htmlified = NULL WHERE description LIKE '%?%')", [keyword]);
+  const entries = await db.query("UPDATE entry SET htmlified = NULL WHERE description LIKE '%?%'", [keyword]);
 }
 
 
