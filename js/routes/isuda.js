@@ -129,6 +129,18 @@ router.get('initialize', async (ctx, next) => {
   };
 });
 
+router.get('resetcache', async (ctx, next) => {
+  const db = await dbh(ctx);
+  const entries = await db.query('SELECT id, description FROM entry')
+  for (let entry of entries) {
+    await setCachedHtmlified(ctx, entry);
+  }
+  ctx.body = {
+    result: 'ok',
+  };
+});
+
+
 router.get('', async (ctx, next) => {
   if (!await setName(ctx)) {
     return;
