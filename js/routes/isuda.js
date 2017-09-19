@@ -199,8 +199,8 @@ router.post('keyword', async (ctx, next) => {
 
   const db = await dbh(ctx);
   await db.query(
-    'INSERT INTO entry (author_id, keyword, description, created_at, updated_at, keyword_length) ' +
-    'VALUES (?, ?, ?, NOW(), NOW(), CHARACTER_LENGTH(keyword)) ' +
+    'INSERT INTO entry (author_id, keyword, description, created_at, updated_at) ' +
+    'VALUES (?, ?, ?, NOW(), NOW()) ' +
     'ON DUPLICATE KEY UPDATE ' +
     'author_id = ?, keyword = ?, description = ?, updated_at = NOW()',
     [
@@ -327,7 +327,7 @@ router.post('keyword/:keyword', async (ctx, next) => {
   }
 
   const db = await dbh(ctx);
-  const entries = await db.query('SELECT * FROM entry WHERE keyword = ?', [keyword]);
+  const entries = await db.query('SELECT id FROM entry WHERE keyword = ?', [keyword]);
   if (entries.length == 0) {
     ctx.status = 404;
     return;
@@ -399,7 +399,7 @@ router.post('stars', async (ctx, next) => {
 });
 
 const setCachedKeywords = async (db) => {
-  const keywords = await db.query('SELECT keyword FROM entry ORDER BY keyword_length DESC');
+  const keywords = await db.query('SELECT keyword FROM entry ORDER BY CHARACTER_LENGTH(keyword) DESC');
   await redisClient.setAsync("keywords", keywords.map((keyword) => escapeRegExp(keyword.keyword)).join('|'));
 }
 
