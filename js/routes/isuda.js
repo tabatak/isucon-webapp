@@ -151,12 +151,11 @@ router.get('', async (ctx, next) => {
   const db = await dbh(ctx);
   const entries = await db.query('SELECT * FROM entry ORDER BY updated_at DESC LIMIT ? OFFSET ?', [perPage, perPage * (page - 1)])
   for (let entry of entries) {
-    if(entry.htmlified){
-      entry.html = entry.htmlified;
-    }else{
+    if(entry.htmlified == null){
       entry.html = await htmlify(ctx, entry.description);
+    }else{
+      entry.html = entry.htmlified;
     }
-    entry.html = await getCachedHtmlified(ctx, entry);
     entry.stars = await loadStars(ctx, entry.keyword);
   }
 
@@ -306,10 +305,10 @@ router.get('keyword/:keyword', async (ctx, next) => {
     return;
   }
   ctx.state.entry = entries[0];
-  if(entries[0].htmlified){
-    ctx.state.entry.html = entries[0].htmlified;
-  }else{
+  if(entries[0].htmlified == null){
     ctx.state.entry.html = await htmlify(ctx, entries[0].description);
+  }else{
+    ctx.state.entry.html = entries[0].htmlified;
   }
   ctx.state.entry.stars = await loadStars(ctx, keyword);
   await ctx.render('keyword');
