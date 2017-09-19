@@ -153,6 +153,7 @@ router.get('', async (ctx, next) => {
   for (let entry of entries) {
     if(entry.htmlified == null){
       entry.html = await htmlify(ctx, entry.description);
+      await db.query("UPDATE entry SET htmlified = ? WHERE id = ?", [entry.html, entry.id]);
     }else{
       entry.html = entry.htmlified;
     }
@@ -307,6 +308,7 @@ router.get('keyword/:keyword', async (ctx, next) => {
   ctx.state.entry = entries[0];
   if(entries[0].htmlified == null){
     ctx.state.entry.html = await htmlify(ctx, entries[0].description);
+    await db.query("UPDATE entry SET htmlified = ? WHERE id = ?", [ctx.state.entry.html, entry.id]);
   }else{
     ctx.state.entry.html = entries[0].htmlified;
   }
@@ -365,7 +367,6 @@ const htmlify = async (ctx, content) => {
     result = result.replace(new RegExp(escapeRegExp(key2sha.get(kw)), 'g'), link);
   }
   result = result.replace(/\n/g, "<br />\n");
-  await db.query("UPDATE entry SET htmlified = ? WHERE id = ?", [result, entry.id]);
   return result;
 };
 
