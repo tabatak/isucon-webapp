@@ -427,7 +427,7 @@ const resetCachedHtmlified = async (ctx, keyword) => {
   const db = await dbh(ctx);
   const entries = await db.query("SELECT id, description FROM entry where description LIKE '%?%'", [keyword])
   for (let entry of entries) {
-    await redisClient.del(`htmlified-${entry.id}`);
+    await redisClient.set(`htmlified-${entry.id}`, '');
   }
 }
 
