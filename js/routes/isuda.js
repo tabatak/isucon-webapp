@@ -133,7 +133,7 @@ router.get('resetcache', async (ctx, next) => {
   const db = await dbh(ctx);
   const entries = await db.query('SELECT id, description FROM entry')
   for (let entry of entries) {
-    await setCachedHtmlified(ctx, entry);
+    await setHtmlified(ctx, entry);
   }
   ctx.body = {
     result: 'ok',
@@ -151,7 +151,11 @@ router.get('', async (ctx, next) => {
   const db = await dbh(ctx);
   const entries = await db.query('SELECT * FROM entry ORDER BY updated_at DESC LIMIT ? OFFSET ?', [perPage, perPage * (page - 1)])
   for (let entry of entries) {
-    // entry.html = await htmlify(ctx, entry.description);
+    if(entry.htmlified){
+      entry.html = entry.htmlified;
+    }else{
+      entry.html = await htmlify(ctx, entry.description);
+    }
     entry.html = await getCachedHtmlified(ctx, entry);
     entry.stars = await loadStars(ctx, entry.keyword);
   }
@@ -208,7 +212,7 @@ router.post('keyword', async (ctx, next) => {
     ]);
 
   await setCachedKeywords(db);
-  await resetCachedHtmlified(ctx, keyword);
+  await resetHtmlified(ctx, keyword);
   await ctx.redirect('/');
 });
 
@@ -302,8 +306,11 @@ router.get('keyword/:keyword', async (ctx, next) => {
     return;
   }
   ctx.state.entry = entries[0];
-  // ctx.state.entry.html = await htmlify(ctx, entries[0].description);
-  ctx.state.entry.html = await getCachedHtmlified(ctx, entries[0]);
+  if(entries[0].htmlified){
+    ctx.state.entry.html = entries[0].htmlified;
+  }else{
+    ctx.state.entry.html = await htmlify(ctx, entries[0].description);
+  }
   ctx.state.entry.stars = await loadStars(ctx, keyword);
   await ctx.render('keyword');
 });
@@ -334,7 +341,7 @@ router.post('keyword/:keyword', async (ctx, next) => {
   }
   await db.query('DELETE FROM entry WHERE keyword = ?', [keyword]);
   await setCachedKeywords(db);
-  await resetCachedHtmlified(ctx, keyword);
+  await resetHtmlified(ctx, keyword);
   await ctx.redirect('/');
 });
 
@@ -359,6 +366,7 @@ const htmlify = async (ctx, content) => {
     result = result.replace(new RegExp(escapeRegExp(key2sha.get(kw)), 'g'), link);
   }
   result = result.replace(/\n/g, "<br />\n");
+  await db.query("UPDATE entry SET htmlified = ? WHERE id = ?", [result, entry.id]);
   return result;
 };
 
@@ -427,9 +435,21 @@ const resetCachedHtmlified = async (ctx, keyword) => {
   const db = await dbh(ctx);
   const entries = await db.query("SELECT id, description FROM entry where keyword = ? OR (keyword <> ? AND description LIKE '%?%')", [keyword, keyword, keyword])
   for (let entry of entries) {
-    await redisClient.set(`htmlified-${entry.id}`, '');
+    await redisClient.setAsync(`htmlified-${entry.id}`, '');
   }
 }
+
+const setHtmlified = async (ctx, entry) => {
+  const db = await dbh(ctx);
+  const htmlified = await htmlify(ctx, entry.description);
+  await db.query("UPDATE entry SET htmlified = ? WHERE id = ?", [htmlified, entry.id]);
+}
+
+const resetHtmlified = async (ctx, keyword) => {
+  const db = await dbh(ctx);
+  const entries = await db.query("UPDATE entry SET htmlified = NULL WHERE description LIKE '%?%')", [keyword]);
+}
+
 
 
 module.exports = router;
